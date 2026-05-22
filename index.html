@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ASPHALT NEON CYBERPUNK - 3D Arcade Racing Game</title>
+  <meta name="description" content="Experience high-speed 3D arcade racing in a cyberpunk city! Complete with drifting, nitro boosts, ramps, AI competitors, and procedural audio. Play free now.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Prevent default touch scrolls/scaling on mobile */
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050508;
+      font-family: 'Outfit', sans-serif;
+      user-select: none;
+      touch-action: none;
+      -webkit-touch-callout: none;
+    }
+  </style>
+  <script type="module" crossorigin src="./assets/index-DOioB4Xg.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CWDLjhDg.css">
+</head>
+<body>
+  <!-- Three.js Canvas -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- LOADING SCREEN -->
+  <div id="loading-screen" class="overlay-screen active">
+    <div class="loader-content">
+      <h1 class="logo-text">ASPHALT <span class="accent-text">NEON</span></h1>
+      <div class="subtitle-text">SYNTHWAVE CYBERPUNK ARCHIVE</div>
+      <div class="loader-bar-container">
+        <div id="loader-progress" class="loader-progress"></div>
+      </div>
+      <div class="loader-status">Initializing Neural Drive...</div>
+    </div>
+  </div>
+
+  <!-- MAIN MENU SCREEN -->
+  <div id="main-menu" class="overlay-screen">
+    <div class="menu-container">
+      <header class="menu-header">
+        <h1 class="logo-text glitch" data-text="ASPHALT NEON">ASPHALT <span class="accent-text">NEON</span></h1>
+        <p class="tagline">3D NEXT-GEN WEB ARCADE</p>
+      </header>
+
+      <!-- CAR SELECTION CAROUSEL -->
+      <div class="carousel-panel">
+        <h2 class="section-title">SELECT MACHINE</h2>
+        <div class="carousel-control-wrapper">
+          <button id="car-prev-btn" class="carousel-btn">&lt;</button>
+          <div class="car-info-display">
+            <h3 id="car-name" class="car-title">CYBER HAWK</h3>
+            <div id="car-class" class="car-class">S-CLASS</div>
+          </div>
+          <button id="car-next-btn" class="carousel-btn">&gt;</button>
+        </div>
+
+        <!-- CAR STATS -->
+        <div class="car-stats-container">
+          <div class="stat-row">
+            <span class="stat-label">TOP SPEED</span>
+            <div class="stat-bar-outer">
+              <div id="stat-speed" class="stat-bar-inner speed-bar" style="width: 80%"></div>
+            </div>
+            <span id="stat-speed-val" class="stat-value">320 KM/H</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">ACCELERATION</span>
+            <div class="stat-bar-outer">
+              <div id="stat-accel" class="stat-bar-inner accel-bar" style="width: 75%"></div>
+            </div>
+            <span id="stat-accel-val" class="stat-value">2.4 S</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">HANDLING</span>
+            <div class="stat-bar-outer">
+              <div id="stat-handling" class="stat-bar-inner handling-bar" style="width: 70%"></div>
+            </div>
+            <span id="stat-handling-val" class="stat-value">7.8/10</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">NITRO POWER</span>
+            <div class="stat-bar-outer">
+              <div id="stat-nitro" class="stat-bar-inner nitro-bar" style="width: 85%"></div>
+            </div>
+            <span id="stat-nitro-val" class="stat-value">9.5/10</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRACK SELECTION -->
+      <div class="track-panel">
+        <h2 class="section-title">SELECT RUNWAY</h2>
+        <div class="track-options">
+          <div class="track-card active" data-track="neon-city">
+            <div class="track-img-placeholder neon-city-img"></div>
+            <div class="track-card-info">
+              <div class="track-card-name">NEON CITY GRID</div>
+              <div class="track-card-details">3 LAPS • MEDIUM • NIGHT</div>
+            </div>
+          </div>
+          <div class="track-card" data-track="canyon-cove">
+            <div class="track-img-placeholder canyon-img"></div>
+            <div class="track-card-info">
+              <div class="track-card-name">CYBER CANYON</div>
+              <div class="track-card-details">2 LAPS • HARD • SUNSET</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS & CONTROLS INFO -->
+      <div class="bottom-controls-row">
+        <button id="settings-toggle-btn" class="glass-btn small-btn">
+          <span class="icon">⚙</span> SETTINGS
+        </button>
+        <button id="start-race-btn" class="glow-btn large-btn">
+          LAUNCH ENGINE
+        </button>
+        <button id="controls-help-btn" class="glass-btn small-btn">
+          <span class="icon">🕹</span> CONTROLS
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HUD INTERFACE LAYER (Active during game) -->
+  <div id="game-hud">
+    <!-- Top Left: Standings & Time -->
+    <div class="hud-top-left flex-col gap-sm">
+      <div class="glass-hud-panel pos-rank-panel">
+        <div class="hud-label">POSITION</div>
+        <div class="hud-value"><span id="hud-rank">1</span><span class="hud-total">/4</span></div>
+      </div>
+      <div class="glass-hud-panel time-panel">
+        <div class="hud-label">TIME</div>
+        <div id="hud-time" class="hud-value font-mono">00:00:00</div>
+      </div>
+    </div>
+
+    <!-- Top Right: Laps & Minimap Placeholder -->
+    <div class="hud-top-right flex-col gap-sm">
+      <div class="glass-hud-panel lap-panel">
+        <div class="hud-label">LAP</div>
+        <div class="hud-value"><span id="hud-lap">1</span><span class="hud-total">/3</span></div>
+      </div>
+      <div class="glass-hud-panel drift-score-panel hidden">
+        <div class="hud-label">DRIFT SCORE</div>
+        <div id="hud-drift-val" class="hud-value score-text">0</div>
+      </div>
+    </div>
+
+    <!-- Middle Notifications -->
+    <div id="hud-alert-container">
+      <div id="hud-alert-text" class="alert-message anim-pulse hidden">NITRO CHARGED!</div>
+    </div>
+
+    <!-- Bottom Center: Speedometer & Nitro -->
+    <div class="hud-bottom-center">
+      <div class="speedometer-wrapper">
+        <svg class="speedometer-svg" viewBox="0 0 100 100">
+          <circle class="speedometer-bg" cx="50" cy="50" r="40" />
+          <circle id="speedometer-fill" class="speedometer-fill" cx="50" cy="50" r="40" style="stroke-dasharray: 251.2; stroke-dashoffset: 251.2;" />
+        </svg>
+        <div class="speed-digital-group">
+          <div id="hud-speed-val" class="digital-speed font-orbitron">0</div>
+          <div class="speed-unit">KM/H</div>
+        </div>
+      </div>
+
+      <!-- Nitro Glowing Bar -->
+      <div class="nitro-hud-container">
+        <div class="hud-label-small flex-row justify-between">
+          <span>NITRO BOOSTER</span>
+          <span id="hud-nitro-val" class="font-mono">100%</span>
+        </div>
+        <div class="nitro-bar-outer">
+          <div id="hud-nitro-fill" class="nitro-bar-inner" style="width: 100%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Left / Right: Mobile Controls (Shown on touch device or toggled) -->
+    <div id="mobile-controls" class="hidden">
+      <!-- Steering Pads -->
+      <div class="mobile-side-left">
+        <button id="touch-left-btn" class="touch-btn steer-btn" aria-label="Steer Left">◀</button>
+        <button id="touch-right-btn" class="touch-btn steer-btn" aria-label="Steer Right">▶</button>
+      </div>
+
+      <!-- Action Pads -->
+      <div class="mobile-side-right">
+        <button id="touch-brake-btn" class="touch-btn action-btn brake-btn" aria-label="Drift and Brake">DRIFT</button>
+        <button id="touch-nitro-btn" class="touch-btn action-btn nitro-glow-btn" aria-label="Engage Nitro Boost">NITRO</button>
+      </div>
+    </div>
+
+    <!-- Top Center Controls Toggle -->
+    <div class="hud-top-center">
+      <button id="pause-game-btn" class="hud-small-icon-btn">⏸</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS PANEL OVERLAY -->
+  <div id="settings-overlay" class="overlay-screen settings-screen">
+    <div class="glass-panel settings-container">
+      <h2 class="settings-title">NEURAL NETWORK CONFIG</h2>
+      
+      <div class="settings-grid">
+        <div class="setting-row">
+          <span class="setting-name">GRAPHICS DETAIL</span>
+          <div class="setting-options font-orbitron">
+            <button class="setting-opt-btn" data-quality="low">LOW</button>
+            <button class="setting-opt-btn active" data-quality="medium">MEDIUM</button>
+            <button class="setting-opt-btn" data-quality="high">HIGH</button>
+          </div>
+        </div>
+        
+        <div class="setting-row">
+          <span class="setting-name">SOUND SYNTH ENGINE</span>
+          <div class="setting-slider-group">
+            <span class="volume-icon">🔊</span>
+            <input type="range" id="sound-vol-slider" min="0" max="100" value="80" class="neon-slider">
+            <span id="sound-vol-val" class="slider-value font-mono">80%</span>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-name">RETRO SYNTH MUSIC</span>
+          <div class="setting-slider-group">
+            <span class="volume-icon">🎵</span>
+            <input type="range" id="music-vol-slider" min="0" max="100" value="60" class="neon-slider">
+            <span id="music-vol-val" class="slider-value font-mono">60%</span>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-name">CAMERA PERSPECTIVE</span>
+          <div class="setting-options font-orbitron">
+            <button class="setting-opt-btn active" data-cam="third">CHASE</button>
+            <button class="setting-opt-btn" data-cam="first">COCKPIT</button>
+            <button class="setting-opt-btn" data-cam="far">FAR</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-name">ON-SCREEN MOBILE HUD</span>
+          <div class="setting-options font-orbitron">
+            <button id="hud-force-touch-off" class="setting-opt-btn active">AUTO</button>
+            <button id="hud-force-touch-on" class="setting-opt-btn">FORCE ON</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="settings-close-btn" class="glow-btn small-btn margin-top-lg">
+        SAVE MODIFICATIONS
+      </button>
+    </div>
+  </div>
+
+  <!-- HELP / CONTROLS MODAL -->
+  <div id="controls-modal" class="overlay-screen modal-screen">
+    <div class="glass-panel modal-container">
+      <h2 class="modal-title">PILOT CONTROL INTERFACE</h2>
+      
+      <div class="control-guides-wrapper">
+        <div class="control-column">
+          <h3 class="col-title font-orbitron">KEYBOARD INPUTS</h3>
+          <ul class="control-list">
+            <li><span class="key font-mono">W</span> / <span class="key font-mono">▲</span> <span class="action">ACCELERATION</span></li>
+            <li><span class="key font-mono">S</span> / <span class="key font-mono">▼</span> <span class="action">BRAKE / REVERSE</span></li>
+            <li><span class="key font-mono">A</span> / <span class="key font-mono">◀</span> <span class="action">STEER LEFT</span></li>
+            <li><span class="key font-mono">D</span> / <span class="key font-mono">▶</span> <span class="action">STEER RIGHT</span></li>
+            <li><span class="key font-mono">SHIFT</span> / <span class="key font-mono">S</span> <span class="action">HOLD TO DRIFT IN TURN</span></li>
+            <li><span class="key font-mono">SPACEBAR</span> <span class="action">ENGAGE NITRO BOOST</span></li>
+            <li><span class="key font-mono">R</span> <span class="action">RESET TO TRACK</span></li>
+            <li><span class="key font-mono">ESC</span> <span class="action">PAUSE SIMULATION</span></li>
+          </ul>
+        </div>
+        
+        <div class="control-column">
+          <h3 class="col-title font-orbitron">TACTILE TOUCH (MOBILE)</h3>
+          <ul class="control-list">
+            <li><span class="touch-highlight">LEFT SIDE TRIGGERS</span> <span class="action">STEERING</span></li>
+            <li><span class="touch-highlight">RIGHT "DRIFT" BUTTON</span> <span class="action">ACTIVATE DRIFT / SLOWDOWN</span></li>
+            <li><span class="touch-highlight">RIGHT "NITRO" BUTTON</span> <span class="action">RELEASE COMPRESSED NITRO</span></li>
+            <li><span class="touch-highlight">TOUCH OVERLAY</span> <span class="action">AUTOMATICALLY SHOWN ON MOBILE</span></li>
+          </ul>
+        </div>
+      </div>
+      
+      <button id="controls-close-btn" class="glow-btn small-btn margin-top-lg">
+        CONFIRMED
+      </button>
+    </div>
+  </div>
+
+  <!-- PAUSE MENU OVERLAY -->
+  <div id="pause-overlay" class="overlay-screen">
+    <div class="glass-panel pause-container text-center">
+      <h2 class="logo-text">SIMULATION <span class="accent-text">PAUSED</span></h2>
+      <p class="pause-tagline">NEURAL LINK IS CURRENTLY STANDING BY</p>
+      
+      <div class="pause-btn-stack flex-col gap-md">
+        <button id="pause-resume-btn" class="glow-btn large-btn">RESUME LINK</button>
+        <button id="pause-restart-btn" class="glass-btn large-btn">RECALIBRATE RACE</button>
+        <button id="pause-quit-btn" class="glass-btn large-btn quit-btn">TERMINATE PROTOCOL</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RACE OVER SCREEN (Game Over / Winner Podium) -->
+  <div id="game-over-screen" class="overlay-screen">
+    <div class="menu-container game-over-container">
+      <header class="game-over-header text-center">
+        <h1 id="race-result-title" class="logo-text pulse-text">VICTORY!</h1>
+        <p id="race-result-subtitle" class="tagline">YOU SECURED 1ST POSITION</p>
+      </header>
+
+      <!-- RESULTS PANEL -->
+      <div class="glass-panel results-panel">
+        <h2 class="section-title font-orbitron text-center">PILOT CHRONICLE</h2>
+        <div class="results-stats-grid font-orbitron">
+          <div class="results-stat-card">
+            <span class="card-label">FINAL POSITION</span>
+            <span id="res-position" class="card-value ranking-value">1st</span>
+          </div>
+          <div class="results-stat-card">
+            <span class="card-label">ELAPSED TIME</span>
+            <span id="res-time" class="card-value font-mono">01:45:32</span>
+          </div>
+          <div class="results-stat-card">
+            <span class="card-label">PEAK SPEED</span>
+            <span id="res-speed" class="card-value font-mono">358 KM/H</span>
+          </div>
+          <div class="results-stat-card">
+            <span class="card-label">DRIFT SCORE</span>
+            <span id="res-drift" class="card-value score-text font-mono">12,500</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD -->
+      <div class="leaderboard-panel glass-panel">
+        <h3 class="section-title font-orbitron">CIRCUIT STANDINGS</h3>
+        <table class="leaderboard-table font-orbitron">
+          <thead>
+            <tr>
+              <th class="col-rank">POS</th>
+              <th class="col-pilot">PILOT</th>
+              <th class="col-vehicle">VEHICLE</th>
+              <th class="col-time">LAP TIME</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-rows">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="bottom-controls-row gap-lg">
+        <button id="over-retry-btn" class="glow-btn large-btn">RETRY RACE</button>
+        <button id="over-menu-btn" class="glass-btn large-btn">MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
