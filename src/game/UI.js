@@ -237,6 +237,11 @@ export class UI {
     this.statAccelVal.innerText = car.accelTxt;
     this.statHandlingVal.innerText = car.handlingTxt;
     this.statNitroVal.innerText = car.nitroTxt;
+
+    // Dynamically update the 3D menu showcase car color
+    if (this.game && typeof this.game.updateMenuShowcaseColor === 'function') {
+      this.game.updateMenuShowcaseColor(car.color);
+    }
   }
 
   updateHUD(speed, nitro, lap, maxLaps, rank, totalRacers, driftScore) {

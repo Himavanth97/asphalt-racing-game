@@ -119,8 +119,6 @@ canvas {
 #loading-screen {
   background-color: var(--bg-deep);
   z-index: 100;
-  opacity: 1;
-  pointer-events: auto;
 }
 
 .loader-content {
@@ -185,7 +183,9 @@ canvas {
    ========================================================================== */
 
 #main-menu {
-  background: radial-gradient(circle at center, rgba(15, 10, 35, 0.7) 0%, rgba(5, 5, 10, 0.95) 100%);
+  background: radial-gradient(circle at center, rgba(5, 5, 10, 0.2) 0%, rgba(5, 5, 10, 0.7) 100%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .menu-container {

@@ -136,6 +136,17 @@ export default class Game {
     this.scene.add(stage);
   }
 
+  updateMenuShowcaseColor(color) {
+    const showcase = this.scene.getObjectByName('menuShowcase');
+    if (showcase) {
+      showcase.traverse(child => {
+        if (child.isMesh && child.material) {
+          child.material.color.setHex(color);
+        }
+      });
+    }
+  }
+
   startRace(carDetails, trackType) {
     // 1. Wipe Menu Showcase objects
     const menuObj = this.scene.getObjectByName('menuShowcase');
