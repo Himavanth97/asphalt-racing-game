@@ -101,27 +101,37 @@ export default class Game {
     // 6. Spawn static menu carousel scenery
     this.setupMenuCarousel();
 
-    // Start rendering frame tick loops
+    // Start rendering frame tick loops (runs showroom animations behind loader)
     this.state = 'MENU';
-    this.ui.showScreen(this.ui.mainMenu);
     this.clock.getDelta(); // Reset clock
     this.tick();
   }
 
+  startMenuState() {
+    this.state = 'MENU';
+    this.ui.showScreen(this.ui.mainMenu);
+    this.clock.getDelta(); // Reset clock
+  }
+
   setupMenuCarousel() {
+    // Dynamically retrieve initial selected car color from UI
+    const initialColor = (this.ui && this.ui.carsList && this.ui.carsList[this.ui.currentCarIdx])
+      ? this.ui.carsList[this.ui.currentCarIdx].color
+      : 0xffd700; // Fallback to gold (ANTIGRAVITY X)
+
     // Spawn rotating car grid for showcase in menu
     const showcaseCarGroup = new THREE.Group();
     showcaseCarGroup.name = 'menuShowcase';
 
     const chassis = new THREE.Mesh(
       new THREE.BoxGeometry(2, 0.4, 4.2),
-      new THREE.MeshStandardMaterial({ color: 0x00f3ff, metalness: 0.9, roughness: 0.1 })
+      new THREE.MeshStandardMaterial({ color: initialColor, metalness: 0.9, roughness: 0.1 })
     );
     chassis.position.y = 0.25;
 
     const underglow = new THREE.Mesh(
       new THREE.BoxGeometry(1.9, 0.05, 3.8),
-      new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.8 })
+      new THREE.MeshBasicMaterial({ color: initialColor, transparent: true, opacity: 0.8 })
     );
     underglow.position.y = 0.02;
 
@@ -130,7 +140,7 @@ export default class Game {
     this.scene.add(showcaseCarGroup);
 
     // Neon showroom stage grid under car
-    const stage = new THREE.GridHelper(30, 20, 0x00ffff, 0x111122);
+    const stage = new THREE.GridHelper(30, 20, initialColor, 0x111122);
     stage.name = 'menuStage';
     stage.position.set(0, -1.2, -8);
     this.scene.add(stage);

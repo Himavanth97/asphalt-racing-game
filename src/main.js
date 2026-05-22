@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         setTimeout(() => {
           loader.classList.remove('active');
+          game.startMenuState();
         }, 300);
       } else {
         loaderProgress.style.width = progress + '%';
