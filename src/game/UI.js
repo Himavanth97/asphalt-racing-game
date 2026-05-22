@@ -46,6 +46,13 @@ export class UI {
     // Carousel cars list
     this.carsList = [
       {
+        name: "ANTIGRAVITY X",
+        class: "HYPER-CLASS",
+        color: 0xffd700,
+        stats: { speed: 99, accel: 98, handling: 92, nitro: 99 },
+        speedTxt: "430 KM/H", accelTxt: "1.5 S", handlingTxt: "9.2/10", nitroTxt: "9.9/10"
+      },
+      {
         name: "CYBER HAWK",
         class: "S-CLASS",
         color: 0x00f3ff,
