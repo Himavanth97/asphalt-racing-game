@@ -51,12 +51,15 @@ export default class Car {
   buildCarMesh() {
     this.mesh = new THREE.Group();
 
-    // 1. Sleek Chassis Base
+    // 1. Sleek Chassis Base (High-fidelity physical metallic paint clearcoat)
     const chassisGeom = new THREE.BoxGeometry(2.0, 0.4, 4.2);
-    const chassisMat = new THREE.MeshStandardMaterial({
+    const chassisMat = new THREE.MeshPhysicalMaterial({
       color: this.color,
-      roughness: 0.1,
-      metalness: 0.9
+      roughness: 0.14,
+      metalness: 0.9,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.04,
+      reflectivity: 1.0
     });
     const chassis = new THREE.Mesh(chassisGeom, chassisMat);
     chassis.position.y = 0.25;
@@ -132,8 +135,8 @@ export default class Car {
     this.flameGroup = new THREE.Group();
     this.mesh.add(this.flameGroup);
 
-    // Lights
-    const headLightGeom = new THREE.CylinderGeometry(0.1, 0.1, 0.2, 8);
+    // Lights (Bright Glowing Cylinder Mesh)
+    const headLightGeom = new THREE.CylinderGeometry(0.12, 0.12, 0.25, 8);
     headLightGeom.rotateX(Math.PI / 2);
     const headLightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     
@@ -143,7 +146,30 @@ export default class Car {
     rLight.position.set(0.8, 0.22, 2.1);
     this.mesh.add(lLight, rLight);
 
-    // Enable shadows on car if quality supports
+    // [UPGRADE] Physical glowing red taillights blocks at the rear
+    const tailLightGeom = new THREE.BoxGeometry(0.35, 0.08, 0.08);
+    const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xff0033 });
+    const lTail = new THREE.Mesh(tailLightGeom, tailLightMat);
+    lTail.position.set(-0.7, 0.26, -2.1);
+    const rTail = lTail.clone();
+    rTail.position.set(0.7, 0.26, -2.1);
+    this.mesh.add(lTail, rTail);
+
+    // [UPGRADE] Focused White Headlight Spotlight (casts dynamic road light pools)
+    const headlightsBeam = new THREE.SpotLight(0xffffff, 7.0, 40, Math.PI / 5, 0.5, 1.0);
+    headlightsBeam.position.set(0, 0.22, 2.15);
+    const headlightsTarget = new THREE.Object3D();
+    headlightsTarget.position.set(0, -0.4, 10.0);
+    this.mesh.add(headlightsTarget);
+    headlightsBeam.target = headlightsTarget;
+    this.mesh.add(headlightsBeam);
+
+    // [UPGRADE] Dynamic rear red PointLight (casts glowing red trails behind car)
+    const taillightsGlow = new THREE.PointLight(0xff0033, 2.5, 8);
+    taillightsGlow.position.set(0, 0.22, -2.2);
+    this.mesh.add(taillightsGlow);
+
+    // Enable shadows on car
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
     this.scene.add(this.mesh);
@@ -307,6 +333,7 @@ export default class Car {
 
     // Spawn new flame particles during nitro
     if (this.isNitroActive) {
+      // 1. Standard sparks
       const particleGeom = new THREE.ConeGeometry(0.1, 0.4, 4);
       particleGeom.rotateX(-Math.PI / 2);
       const particleMat = new THREE.MeshBasicMaterial({
@@ -329,6 +356,29 @@ export default class Car {
 
       this.flameGroup.add(p);
       this.flameParticles.push(p);
+
+      // 2. [UPGRADE] Periodic expanding sonic ring shockwaves
+      if (!this.lastShockwaveTime) this.lastShockwaveTime = 0;
+      const now = performance.now();
+      if (now - this.lastShockwaveTime > 120) { // Spawn every 120ms
+        this.lastShockwaveTime = now;
+        
+        const ringGeom = new THREE.TorusGeometry(0.3, 0.04, 8, 24);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: this.color,
+          transparent: true,
+          opacity: 0.8,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        });
+        const shockwave = new THREE.Mesh(ringGeom, ringMat);
+        shockwave.position.set(0, 0.2, -2.1);
+        shockwave.life = 0.3; // Dissolves quickly
+        shockwave.scaleRate = 8.5; // Expands outward rapidly
+        
+        this.flameGroup.add(shockwave);
+        this.flameParticles.push(shockwave);
+      }
     }
 
     // Tick flame particles
@@ -336,9 +386,18 @@ export default class Car {
       const p = this.flameParticles[i];
       p.life -= dt;
       
-      // Move spark relative to car local space
-      p.position.addScaledVector(p.vel, dt);
-      p.scale.multiplyScalar(0.9);
+      if (p.scaleRate) {
+        // [UPGRADE] Expand and push back sonic rings
+        p.scale.addScalar(p.scaleRate * dt);
+        p.position.z -= 8.0 * dt; // Blow backwards
+        if (p.material) {
+          p.material.opacity = Math.max(0, (p.life / 0.3) * 0.8);
+        }
+      } else {
+        // Move standard spark relative to car local space
+        p.position.addScaledVector(p.vel, dt);
+        p.scale.multiplyScalar(0.9);
+      }
 
       if (p.life <= 0) {
         this.flameGroup.remove(p);

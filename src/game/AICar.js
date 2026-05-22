@@ -37,12 +37,15 @@ export default class AICar {
   buildCarMesh() {
     this.mesh = new THREE.Group();
 
-    // 1. Futuristic Aerodynamic Chassis
+    // 1. Futuristic Aerodynamic Chassis (Metallic clearcoat lacquer physical paint)
     const chassisGeom = new THREE.BoxGeometry(2.0, 0.38, 4.0);
-    const chassisMat = new THREE.MeshStandardMaterial({
+    const chassisMat = new THREE.MeshPhysicalMaterial({
       color: this.color,
-      roughness: 0.15,
-      metalness: 0.8
+      roughness: 0.14,
+      metalness: 0.9,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.04,
+      reflectivity: 1.0
     });
     const chassis = new THREE.Mesh(chassisGeom, chassisMat);
     chassis.position.y = 0.24;
@@ -89,6 +92,24 @@ export default class AICar {
       this.mesh.add(wheel);
       this.wheels.push(wheel);
     });
+
+    // [UPGRADE] Physical glowing red taillights blocks at the rear
+    const tailLightGeom = new THREE.BoxGeometry(0.3, 0.08, 0.08);
+    const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xff0033 });
+    const lTail = new THREE.Mesh(tailLightGeom, tailLightMat);
+    lTail.position.set(-0.7, 0.25, -2.0);
+    const rTail = lTail.clone();
+    rTail.position.set(0.7, 0.25, -2.0);
+    this.mesh.add(lTail, rTail);
+
+    // [UPGRADE] Focused White Headlight Spotlight (creates overtaking headlights rays)
+    const headlight = new THREE.SpotLight(0xffffff, 4.5, 25, Math.PI / 5, 0.5, 1.0);
+    headlight.position.set(0, 0.24, 2.05);
+    const headlightTarget = new THREE.Object3D();
+    headlightTarget.position.set(0, -0.3, 8.0);
+    this.mesh.add(headlightTarget);
+    headlight.target = headlightTarget;
+    this.mesh.add(headlight);
 
     this.scene.add(this.mesh);
   }

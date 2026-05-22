@@ -65,20 +65,20 @@ export default class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    // 2. Scene with Deep Cyberpunk Purple Fog
+    // 2. Scene with Deep Cyberpunk Purple Fog (Vibrant Neon Indigo Mist)
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x05050a);
-    this.scene.fog = new THREE.FogExp2(0x05050a, 0.002);
+    this.scene.fog = new THREE.FogExp2(0x0e081c, 0.0016); // Thinner, colorful fog for better horizon visibility
 
     // 3. Perspective Camera
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.scene.add(this.camera);
 
-    // 4. Lighting Config
-    const ambientLight = new THREE.AmbientLight(0x221144, 0.8);
+    // 4. Lighting Config (Warm and vibrant environmental lighting)
+    const ambientLight = new THREE.AmbientLight(0x3a1d5d, 1.25);
     this.scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0x00f3ff, 1.2);
+    const dirLight = new THREE.DirectionalLight(0x00ffff, 1.6);
     dirLight.position.set(50, 150, 50);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
@@ -86,7 +86,7 @@ export default class Game {
     this.scene.add(dirLight);
 
     // Secondary pink glow key light
-    const keyLight = new THREE.DirectionalLight(0xff007f, 0.8);
+    const keyLight = new THREE.DirectionalLight(0xff00b7, 1.2);
     keyLight.position.set(-50, 100, -50);
     this.scene.add(keyLight);
 
@@ -125,7 +125,14 @@ export default class Game {
 
     const chassis = new THREE.Mesh(
       new THREE.BoxGeometry(2, 0.4, 4.2),
-      new THREE.MeshStandardMaterial({ color: initialColor, metalness: 0.9, roughness: 0.1 })
+      new THREE.MeshPhysicalMaterial({
+        color: initialColor,
+        roughness: 0.14,
+        metalness: 0.9,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.04,
+        reflectivity: 1.0
+      })
     );
     chassis.position.y = 0.25;
 

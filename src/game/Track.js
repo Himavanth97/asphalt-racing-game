@@ -70,11 +70,99 @@ export default class Track {
     this.generateScenery();
   }
 
+  createRoadTexture(colorScheme) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 1024;
+    const ctx = canvas.getContext('2d');
+
+    // 1. Asphalt dark tarmac background
+    ctx.fillStyle = '#0b0b12';
+    ctx.fillRect(0, 0, 512, 1024);
+
+    // 2. Fine asphalt grain noise
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    for (let i = 0; i < 8000; i++) {
+      const x = Math.random() * 512;
+      const y = Math.random() * 1024;
+      const size = Math.random() * 1.5 + 0.5;
+      ctx.fillRect(x, y, size, size);
+    }
+
+    // 3. Grid line pattern (synthwave grid lines across the road)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.lineWidth = 1;
+    for (let y = 0; y < 1024; y += 32) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(512, y);
+      ctx.stroke();
+    }
+
+    // 4. Bright outer glowing neon border lines
+    const neonHex = '#' + colorScheme.toString(16).padStart(6, '0');
+    ctx.shadowColor = neonHex;
+    ctx.shadowBlur = 18;
+    ctx.strokeStyle = neonHex;
+    ctx.lineWidth = 14;
+
+    ctx.beginPath();
+    ctx.moveTo(10, 0);
+    ctx.lineTo(10, 1024);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(512 - 10, 0);
+    ctx.lineTo(512 - 10, 1024);
+    ctx.stroke();
+
+    // 5. Bright yellow and cyan center lane markers
+    ctx.shadowColor = '#ffff00';
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = '#ffff00';
+    ctx.lineWidth = 6;
+    ctx.setLineDash([40, 60]); // Dash length, Space length
+
+    ctx.beginPath();
+    ctx.moveTo(250, 0);
+    ctx.lineTo(250, 1024);
+    ctx.stroke();
+
+    ctx.shadowColor = '#00ffff';
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = '#00ffff';
+    ctx.beginPath();
+    ctx.moveTo(262, 0);
+    ctx.lineTo(262, 1024);
+    ctx.stroke();
+
+    // 6. Draw neon speed arrows / chevrons pointing forward
+    ctx.setLineDash([]);
+    ctx.shadowColor = neonHex;
+    ctx.shadowBlur = 15;
+    ctx.strokeStyle = neonHex;
+    ctx.lineWidth = 6;
+
+    for (let y = 128; y < 1024; y += 256) {
+      ctx.beginPath();
+      ctx.moveTo(256 - 45, y + 20);
+      ctx.lineTo(256, y - 20);
+      ctx.lineTo(256 + 45, y + 20);
+      ctx.stroke();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 150); // Repeat texture beautifully along spline path length
+    return texture;
+  }
+
   createRoadGeometry() {
     const segments = 200;
     const radialSegments = 4; // Flat plane extrusion
 
-    // Extrude a flat rectangle road along curve
+    // Extrude a flat rectangle road along curve (acts as structural support mesh)
     const roadShape = new THREE.Shape();
     const halfW = this.trackWidth / 2;
     roadShape.moveTo(-halfW, -0.2);
@@ -91,7 +179,7 @@ export default class Track {
 
     const geom = new THREE.ExtrudeGeometry(roadShape, extrudeSettings);
 
-    // Create high-tech dark grid materials for road
+    // Create high-tech dark grid materials for road structural base
     const material = new THREE.MeshStandardMaterial({
       color: 0x08080f,
       roughness: 0.2,
@@ -99,11 +187,10 @@ export default class Track {
       bumpScale: 0.15
     });
 
-    // Create glowing neon track borders
     this.roadMesh = new THREE.Mesh(geom, material);
     this.scene.add(this.roadMesh);
 
-    // Generate neon border lines
+    // Generate neon border lines (which hover nicely above the road surface)
     const points = this.curve.getSpacedPoints(segments);
     const leftBorderGeom = new THREE.BufferGeometry();
     const rightBorderGeom = new THREE.BufferGeometry();
@@ -131,13 +218,67 @@ export default class Track {
 
     const borderMaterial = new THREE.LineBasicMaterial({
       color: colorScheme,
-      linewidth: 4 // Note: linewidth > 1 usually ignored by WebGL but we simulate glow below
+      linewidth: 4
     });
 
     const leftLine = new THREE.Line(leftBorderGeom, borderMaterial);
     const rightLine = new THREE.Line(rightBorderGeom, borderMaterial);
     this.scene.add(leftLine);
     this.scene.add(rightLine);
+
+    // [UPGRADE] Draw the highly visible glowing procedural road canvas ribbon overlay!
+    const roadTexture = this.createRoadTexture(colorScheme);
+    const ribbonGeom = new THREE.BufferGeometry();
+    const ribbonVertices = [];
+    const ribbonUVs = [];
+    const ribbonIndices = [];
+
+    const ribbonSegments = 300; // High resolution ribbon for curves
+    const ribbonPoints = this.curve.getSpacedPoints(ribbonSegments);
+
+    for (let i = 0; i <= ribbonSegments; i++) {
+      const pt = ribbonPoints[i % ribbonPoints.length];
+      const uVal = i / ribbonSegments;
+      const tangent = this.curve.getTangentAt(uVal).normalize();
+      const up = new THREE.Vector3(0, 1, 0);
+      const normal = new THREE.Vector3().crossVectors(tangent, up).normalize();
+
+      const leftPt = pt.clone().add(normal.clone().multiplyScalar(halfW));
+      const rightPt = pt.clone().add(normal.clone().multiplyScalar(-halfW));
+
+      // Put ribbon exactly 0.02 above the structural road cap (y = 0.12) to avoid z-fighting and float perfectly
+      ribbonVertices.push(leftPt.x, leftPt.y + 0.12, leftPt.z);
+      ribbonVertices.push(rightPt.x, rightPt.y + 0.12, rightPt.z);
+
+      ribbonUVs.push(0, i);
+      ribbonUVs.push(1, i);
+
+      if (i < ribbonSegments) {
+        const currL = i * 2;
+        const currR = i * 2 + 1;
+        const nextL = (i + 1) * 2;
+        const nextR = (i + 1) * 2 + 1;
+
+        ribbonIndices.push(currL, currR, nextL);
+        ribbonIndices.push(currR, nextR, nextL);
+      }
+    }
+
+    ribbonGeom.setAttribute('position', new THREE.Float32BufferAttribute(ribbonVertices, 3));
+    ribbonGeom.setAttribute('uv', new THREE.Float32BufferAttribute(ribbonUVs, 2));
+    ribbonGeom.setIndex(ribbonIndices);
+    ribbonGeom.computeVertexNormals();
+
+    const roadSurfaceMat = new THREE.MeshStandardMaterial({
+      map: roadTexture,
+      bumpMap: roadTexture,
+      bumpScale: 0.04,
+      roughness: 0.12,
+      metalness: 0.85
+    });
+
+    const roadSurfaceMesh = new THREE.Mesh(ribbonGeom, roadSurfaceMat);
+    this.scene.add(roadSurfaceMesh);
   }
 
   createCheckpoints() {
@@ -402,6 +543,91 @@ export default class Track {
         this.scene.add(mountain);
       }
     }
+
+    // 4. [UPGRADE] Draw Asphalt 9 Horizon Sun & Towering Beacon Lights
+    this.createHorizonSun();
+  }
+
+  createHorizonSun() {
+    const sunGroup = new THREE.Group();
+    sunGroup.name = 'scenery'; // Tagged as scenery for automatic cleanups
+
+    // Giant outer glowing circle geometry
+    const sunGeom = new THREE.CircleGeometry(150, 32);
+
+    // Create gradient canvas for synthwave sun with cutouts
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    const grad = ctx.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0, '#ff007f');   // Hot pink top
+    grad.addColorStop(0.4, '#ff5500'); // Neon orange
+    grad.addColorStop(0.8, '#ffff00'); // Bright yellow bottom
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 256, 256);
+
+    // Draw horizontal synthwave cuts into the sun
+    ctx.fillStyle = '#05050a'; // Must match game ambient background
+    for (let y = 140; y < 256; y += 14) {
+      const h = (y - 140) / 7 + 2.5; // Slices get progressively wider towards the bottom
+      ctx.fillRect(0, y, 256, h);
+    }
+
+    const sunTex = new THREE.CanvasTexture(canvas);
+    const sunMat = new THREE.MeshBasicMaterial({
+      map: sunTex,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+
+    const sunMesh = new THREE.Mesh(sunGeom, sunMat);
+    // Position extremely far in the distance and high up
+    sunMesh.position.set(200, 100, -600);
+    sunMesh.lookAt(200, 100, 0); // Face the race course
+    sunGroup.add(sunMesh);
+
+    // Add glowing neon rings concentric with the sun for dramatic silhouette depth
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+
+    for (let r = 180; r <= 280; r += 50) {
+      const ringGeom = new THREE.RingGeometry(r, r + 3, 64);
+      const ringMesh = new THREE.Mesh(ringGeom, ringMat);
+      ringMesh.position.copy(sunMesh.position);
+      ringMesh.rotation.copy(sunMesh.rotation);
+      sunGroup.add(ringMesh);
+    }
+
+    // Skyward glowing neon beacon pillars (light beacons piercing the fog)
+    const beaconColors = [0x00ffff, 0xff007f, 0x9d00ff];
+    for (let i = 0; i < 9; i++) {
+      const beaconGeom = new THREE.CylinderGeometry(0.8, 12, 400, 16, 1, true);
+      const beaconMat = new THREE.MeshBasicMaterial({
+        color: beaconColors[i % beaconColors.length],
+        transparent: true,
+        opacity: 0.12,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      });
+
+      const beacon = new THREE.Mesh(beaconGeom, beaconMat);
+      // Disperse beacons around the distant track skyline
+      const angle = (i / 9) * Math.PI * 2;
+      const radius = 500 + Math.random() * 150;
+      beacon.position.set(Math.cos(angle) * radius, 180, Math.sin(angle) * radius);
+      sunGroup.add(beacon);
+    }
+
+    this.scene.add(sunGroup);
   }
 
   // Animates items (floating canister rotations)
